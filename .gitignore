@@ -1,0 +1,10 @@
+data/raw_html/
+data/transcripts.json
+data/classify_progress.json
+data/embed_progress.json
+data/members.json
+data/sitting_dates.json
+__pycache__/
+*.pyc
+.env
+serve.sh

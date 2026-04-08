@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NS Hansard Search</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f5f5f3; color: #333;
+            line-height: 1.6; -webkit-font-smoothing: antialiased;
+        }
+
+        /* Nav */
+        .nav { background: #111; color: #fff; padding: 0.8rem 0; position: sticky; top: 0; z-index: 50; }
+        .nav .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 0.9rem; font-weight: 600; letter-spacing: -0.01em; cursor: pointer; }
+        .nav-brand span { color: #999; font-weight: 400; margin-left: 0.5rem; font-size: 0.78rem; }
+        .nav-search { display: flex; gap: 0.5rem; }
+        .nav-search input {
+            background: #222; border: 1px solid #333; color: #fff; padding: 0.4rem 0.8rem;
+            border-radius: 6px; font-size: 0.82rem; width: 280px; outline: none; font-family: inherit;
+        }
+        .nav-search input::placeholder { color: #666; }
+        .nav-search input:focus { border-color: #555; }
+        .nav-search button {
+            background: #333; border: none; color: #fff; padding: 0.4rem 0.8rem;
+            border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-family: inherit;
+        }
+
+        /* Layout */
+        .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+        .page { min-height: calc(100vh - 50px); }
+
+        /* Stats bar */
+        .stats-bar { background: #fff; border-bottom: 1px solid #e5e5e3; padding: 1rem 0; }
+        .stats-row { display: flex; gap: 2rem; }
+        .stat-item { font-size: 0.78rem; color: #999; }
+        .stat-item strong { color: #333; font-weight: 600; font-size: 1.1rem; display: block; }
+
+        /* Section header */
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1.5rem 0 1rem; border-bottom: 1px solid #e5e5e3; margin-bottom: 1rem;
+        }
+        .section-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: #999; font-weight: 600; }
+        .sort-controls { display: flex; gap: 0.5rem; }
+        .sort-btn {
+            font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 100px;
+            border: 1px solid #ddd; background: #fff; cursor: pointer; color: #888; font-family: inherit;
+        }
+        .sort-btn.active { background: #111; color: #fff; border-color: #111; }
+
+        /* MLA Grid */
+        .mla-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.75rem; padding-bottom: 2rem; }
+        .mla-card {
+            background: #fff; border: 1px solid #e8e8e6; border-radius: 12px; padding: 1.25rem;
+            cursor: pointer; transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .mla-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.04); transform: translateY(-1px); }
+        .mla-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; }
+        .mla-name { font-size: 1rem; font-weight: 600; color: #111; }
+        .mla-hon { font-size: 0.65rem; color: #999; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+        .mla-stats { display: flex; gap: 1.25rem; margin-top: 0.6rem; }
+        .mla-stat { font-size: 0.72rem; color: #aaa; }
+        .mla-stat strong { color: #555; font-weight: 600; }
+        .mla-bar { margin-top: 0.6rem; height: 3px; background: #f0f0ee; border-radius: 2px; overflow: hidden; }
+        .mla-bar-fill { height: 100%; border-radius: 2px; }
+
+        /* Profile view */
+        .profile { padding: 1.5rem 0; }
+        .profile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+        .profile-name { font-size: 1.8rem; font-weight: 700; color: #111; letter-spacing: -0.03em; }
+        .profile-meta { font-size: 0.85rem; color: #888; margin-top: 0.25rem; }
+        .back-btn {
+            font-size: 0.82rem; color: #888; text-decoration: none; cursor: pointer;
+            border: 1px solid #ddd; padding: 0.35rem 0.8rem; border-radius: 6px; background: #fff;
+            font-family: inherit;
+        }
+        .back-btn:hover { color: #111; border-color: #bbb; }
+
+        .profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .profile-stat {
+            background: #fff; border: 1px solid #e8e8e6; border-radius: 10px; padding: 1rem;
+        }
+        .profile-stat strong { font-size: 1.4rem; color: #111; display: block; letter-spacing: -0.02em; }
+        .profile-stat span { font-size: 0.72rem; color: #999; }
+
+        /* Section breakdown */
+        .section-breakdown { background: #fff; border: 1px solid #e8e8e6; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+        .section-breakdown h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 0.75rem; font-weight: 600; }
+        .section-row { display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; font-size: 0.82rem; }
+        .section-row-name { color: #555; }
+        .section-row-count { color: #aaa; font-size: 0.75rem; }
+
+        /* Speech list */
+        .speech-list { }
+        .speech-item {
+            background: #fff; border: 1px solid #e8e8e6; border-radius: 10px;
+            padding: 1rem 1.25rem; margin-bottom: 0.5rem;
+        }
+        .speech-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.3rem; }
+        .speech-section { font-size: 0.7rem; color: #999; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+        .speech-date { font-size: 0.75rem; color: #aaa; }
+        .speech-speaker { font-size: 0.85rem; font-weight: 600; color: #111; margin-bottom: 0.2rem; cursor: pointer; }
+        .speech-speaker:hover { text-decoration: underline; }
+        .speech-text { font-size: 0.88rem; color: #555; line-height: 1.65; }
+        .speech-text.truncated { max-height: 4.5em; overflow: hidden; position: relative; }
+        .speech-text.truncated::after {
+            content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2em;
+            background: linear-gradient(transparent, #fff);
+        }
+        .speech-expand {
+            font-size: 0.75rem; color: #888; cursor: pointer; margin-top: 0.3rem;
+            border: none; background: none; font-family: inherit; padding: 0;
+        }
+        .speech-expand:hover { color: #111; }
+        .speech-meta { display: flex; gap: 1rem; margin-top: 0.4rem; }
+        .speech-meta span { font-size: 0.7rem; color: #bbb; }
+        .speech-hansard-link {
+            font-size: 0.7rem; color: #4A90D9; text-decoration: none; margin-top: 0.3rem; display: inline-block;
+        }
+        .speech-hansard-link:hover { text-decoration: underline; }
+
+        /* Search results */
+        .search-info { padding: 1rem 0; font-size: 0.85rem; color: #888; }
+        .search-info strong { color: #333; }
+        mark { background: #fef3c7; color: #333; padding: 0 2px; border-radius: 2px; }
+
+        /* Empty state */
+        .empty { text-align: center; padding: 4rem 2rem; color: #999; }
+        .empty h2 { font-size: 1.2rem; color: #666; margin-bottom: 0.5rem; }
+        .empty p { font-size: 0.9rem; }
+
+        /* Transcript view */
+        .transcript-header { padding: 1.5rem 0 1rem; }
+        .transcript-date { font-size: 1.4rem; font-weight: 700; color: #111; letter-spacing: -0.02em; }
+        .transcript-link { font-size: 0.78rem; color: #4A90D9; text-decoration: none; }
+        .transcript-link:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .mla-grid { grid-template-columns: 1fr; }
+            .profile-stats { grid-template-columns: repeat(2, 1fr); }
+            .nav-search input { width: 160px; }
+            .stats-row { flex-wrap: wrap; gap: 1rem; }
+        }
+
+        /* Loading */
+        .loading { text-align: center; padding: 3rem; color: #999; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <div class="wrap">
+        <div class="nav-brand" onclick="showDirectory()">
+            NS Hansard<span>65th Assembly</span>
+        </div>
+        <div class="nav-search">
+            <input type="text" id="search-input" placeholder="Search debates..." onkeydown="if(event.key==='Enter')doSearch()">
+            <button onclick="doSearch()">Search</button>
+        </div>
+    </div>
+</nav>
+
+<div id="app" class="page">
+    <div class="loading">Loading...</div>
+</div>
+
+<script>
+const API = '';
+let allMembers = [];
+let currentView = 'directory';
+let maxWords = 0;
+
+// --- Fetch helpers ---
+async function api(path) {
+    const res = await fetch(API + path);
+    return res.json();
+}
+
+// --- Init ---
+async function init() {
+    const [stats, members] = await Promise.all([
+        api('/api/stats'),
+        api('/api/members')
+    ]);
+    allMembers = members;
+    maxWords = Math.max(...members.map(m => m.total_words));
+    renderDirectory(stats, members);
+}
+
+// --- Directory View ---
+function renderDirectory(stats, members, sort = 'total_words') {
+    currentView = 'directory';
+    const app = document.getElementById('app');
+
+    const statsHtml = `
+        <div class="stats-bar">
+            <div class="wrap">
+                <div class="stats-row">
+                    <div class="stat-item"><strong>${members.length}</strong>MLAs tracked</div>
+                    <div class="stat-item"><strong>${stats.sitting_days}</strong>sitting days</div>
+                    <div class="stat-item"><strong>${stats.speeches.toLocaleString()}</strong>speeches</div>
+                    <div class="stat-item"><strong>${stats.total_words.toLocaleString()}</strong>words spoken</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const sorts = [
+        ['total_words', 'Most words'],
+        ['speech_count', 'Most speeches'],
+        ['days_active', 'Most active'],
+        ['avg_words_per_speech', 'Longest speeches'],
+        ['name', 'A-Z']
+    ];
+
+    const sortHtml = sorts.map(([key, label]) =>
+        `<button class="sort-btn ${sort === key ? 'active' : ''}" onclick="sortMembers('${key}')">${label}</button>`
+    ).join('');
+
+    const cardsHtml = members.map(m => {
+        const pct = (m.total_words / maxWords * 100).toFixed(1);
+        const color = m.is_honourable ? '#4A90D9' : '#4AAE8C';
+        return `
+            <div class="mla-card" onclick="showProfile('${m.slug}')">
+                <div class="mla-card-header">
+                    <div class="mla-name">${m.is_honourable ? 'Hon. ' : ''}${m.name}</div>
+                    ${m.is_honourable ? '<span class="mla-hon">Minister</span>' : ''}
+                </div>
+                <div class="mla-stats">
+                    <div class="mla-stat"><strong>${m.speech_count}</strong> speeches</div>
+                    <div class="mla-stat"><strong>${m.total_words.toLocaleString()}</strong> words</div>
+                    <div class="mla-stat"><strong>${m.days_active}</strong> days</div>
+                </div>
+                <div class="mla-bar"><div class="mla-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+            </div>
+        `;
+    }).join('');
+
+    app.innerHTML = `
+        ${statsHtml}
+        <div class="wrap">
+            <div class="section-header">
+                <div class="section-title">Members of the Legislative Assembly</div>
+                <div class="sort-controls">${sortHtml}</div>
+            </div>
+            <div class="mla-grid">${cardsHtml}</div>
+        </div>
+    `;
+}
+
+async function sortMembers(sort) {
+    const members = await api('/api/members?sort=' + sort);
+    allMembers = members;
+    const stats = await api('/api/stats');
+    renderDirectory(stats, members, sort);
+}
+
+// --- Profile View ---
+async function showProfile(slug) {
+    currentView = 'profile';
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading">Loading profile...</div>';
+
+    const data = await api('/api/members/' + slug);
+    const m = data.member;
+    const speeches = data.speeches;
+
+    const topSections = data.sections.filter(s => s.section).slice(0, 8);
+    const sectionsHtml = topSections.map(s =>
+        `<div class="section-row">
+            <span class="section-row-name">${s.section}</span>
+            <span class="section-row-count">${s.count} speeches &middot; ${s.words.toLocaleString()} words</span>
+        </div>`
+    ).join('');
+
+    const speechesHtml = speeches.map(s => renderSpeechItem(s, false)).join('');
+
+    app.innerHTML = `
+        <div class="wrap profile">
+            <div class="profile-header">
+                <div>
+                    <div class="profile-name">${m.is_honourable ? 'Hon. ' : ''}${m.name}</div>
+                    <div class="profile-meta">${m.constituency || ''} ${m.party ? '&middot; ' + m.party : ''}</div>
+                </div>
+                <button class="back-btn" onclick="showDirectory()">&larr; All MLAs</button>
+            </div>
+
+            <div class="profile-stats">
+                <div class="profile-stat"><strong>${m.speech_count}</strong><span>Speeches</span></div>
+                <div class="profile-stat"><strong>${m.total_words.toLocaleString()}</strong><span>Words spoken</span></div>
+                <div class="profile-stat"><strong>${m.days_active}</strong><span>Days active</span></div>
+                <div class="profile-stat"><strong>${Math.round(m.avg_words_per_speech)}</strong><span>Avg words / speech</span></div>
+            </div>
+
+            ${data.topics && data.topics.length ? `<div class="section-breakdown"><h3>What they talk about</h3>${data.topics.slice(0, 8).map(t =>
+                `<div class="section-row">
+                    <span class="section-row-name">${t.topic}</span>
+                    <span class="section-row-count">${t.count} speeches &middot; ${t.words.toLocaleString()} words</span>
+                </div>`
+            ).join('')}</div>` : ''}
+            ${sectionsHtml ? `<div class="section-breakdown"><h3>Where they speak</h3>${sectionsHtml}</div>` : ''}
+
+            <div class="section-header">
+                <div class="section-title">Speeches (${data.total_speeches})</div>
+            </div>
+            <div class="speech-list">${speechesHtml}</div>
+            ${data.total_speeches > data.per_page ? '<div class="loading" style="padding:1rem;font-size:0.8rem;">Showing first 50 speeches</div>' : ''}
+        </div>
+    `;
+}
+
+function renderSpeechItem(s, showSpeaker = true) {
+    const text = s.text || '';
+    const truncated = text.length > 400;
+    const displayText = truncated ? text.substring(0, 400) + '...' : text;
+    const id = 'speech-' + s.id;
+
+    const speakerHtml = showSpeaker
+        ? `<div class="speech-speaker" onclick="event.stopPropagation();showProfile('${s.member_slug}')">${s.is_honourable ? 'Hon. ' : ''}${s.name}</div>`
+        : '';
+
+    return `
+        <div class="speech-item">
+            <div class="speech-header">
+                <span class="speech-section">${s.topic ? s.topic + ' &middot; ' : ''}${s.section || ''}</span>
+                <span class="speech-date">${s.date}${s.timestamp ? ' &middot; ' + s.timestamp : ''}${s.similarity ? ' &middot; ' + Math.round(s.similarity * 100) + '% match' : ''}</span>
+            </div>
+            ${speakerHtml}
+            ${s.summary ? `<div style="font-size:0.78rem;color:#999;margin-bottom:0.3rem;font-style:italic;">${s.summary}</div>` : ''}
+            <div class="speech-text ${truncated ? 'truncated' : ''}" id="${id}">${displayText}</div>
+            ${truncated ? `<button class="speech-expand" onclick="expandSpeech('${id}', this, ${JSON.stringify(text).replace(/'/g, "\\'")})">&darr; Show full speech (${s.word_count} words)</button>` : ''}
+            <div class="speech-meta">
+                <span>${s.word_count} words</span>
+                ${s.sitting_slug ? `<a class="speech-hansard-link" href="https://nslegislature.ca/legislative-business/hansard-debates/assembly-65-session-1/${s.sitting_slug}" target="_blank">View in Hansard &rarr;</a>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function expandSpeech(id, btn, fullText) {
+    const el = document.getElementById(id);
+    el.classList.remove('truncated');
+    el.textContent = fullText;
+    btn.remove();
+}
+
+// --- Search ---
+async function doSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) return;
+
+    currentView = 'search';
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading">Searching...</div>';
+
+    const data = await api('/api/search?q=' + encodeURIComponent(q));
+
+    if (data.results.length === 0) {
+        app.innerHTML = `
+            <div class="wrap">
+                <div class="empty">
+                    <h2>No results for "${q}"</h2>
+                    <p>Try different keywords or a broader search.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const resultsHtml = data.results.map(s => renderSpeechItem(s, true)).join('');
+
+    app.innerHTML = `
+        <div class="wrap">
+            <div class="search-info">
+                <strong>${data.count}</strong> results for "<strong>${data.query}</strong>"
+                <button class="back-btn" style="margin-left:1rem;" onclick="showDirectory()">&larr; Back</button>
+            </div>
+            <div class="speech-list">${resultsHtml}</div>
+        </div>
+    `;
+}
+
+// --- Navigation ---
+async function showDirectory() {
+    const stats = await api('/api/stats');
+    renderDirectory(stats, allMembers.length ? allMembers : await api('/api/members'));
+}
+
+// --- Start ---
+init();
+</script>
+
+</body>
+</html>

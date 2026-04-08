@@ -3,199 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NS Hansard Search</title>
+    <title>NS Hansard — What does your MLA actually do?</title>
+    <meta name="description" content="Search 1.7 million words of Nova Scotia legislative debate. Find what your MLA says, how often they speak, and what they talk about.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, sans-serif;
-            background: #f5f5f3; color: #333;
+            background: #f8f7f4; color: #333;
             line-height: 1.6; -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
-        /* Nav */
-        .nav { background: #111; color: #fff; padding: 0.8rem 0; position: sticky; top: 0; z-index: 50; }
-        .nav .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-        .nav-brand { font-size: 0.9rem; font-weight: 600; letter-spacing: -0.01em; cursor: pointer; }
-        .nav-brand span { color: #999; font-weight: 400; margin-left: 0.5rem; font-size: 0.78rem; }
-        .nav-search { display: flex; gap: 0.5rem; }
+        /* ---- GEOMETRIC BACKGROUND ---- */
+        .geo-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; pointer-events: none;
+        }
+        .geo-bg svg { width: 100%; height: 100%; }
+
+        /* ---- NAV ---- */
+        .nav {
+            padding: 0.8rem 0; position: sticky; top: 0; z-index: 50;
+            background: rgba(248,247,244,0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .nav .wrap { display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 0.85rem; font-weight: 600; letter-spacing: -0.01em; cursor: pointer; color: #111; }
+        .nav-brand span { color: #aaa; font-weight: 400; margin-left: 0.4rem; font-size: 0.72rem; }
+        .nav-search { display: flex; gap: 0.4rem; }
         .nav-search input {
-            background: #222; border: 1px solid #333; color: #fff; padding: 0.4rem 0.8rem;
-            border-radius: 6px; font-size: 0.82rem; width: 280px; outline: none; font-family: inherit;
+            background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); color: #333; padding: 0.4rem 0.8rem;
+            border-radius: 8px; font-size: 0.8rem; width: 260px; outline: none; font-family: inherit;
         }
-        .nav-search input::placeholder { color: #666; }
-        .nav-search input:focus { border-color: #555; }
+        .nav-search input::placeholder { color: #aaa; }
+        .nav-search input:focus { border-color: rgba(0,0,0,0.15); background: rgba(255,255,255,0.8); }
         .nav-search button {
-            background: #333; border: none; color: #fff; padding: 0.4rem 0.8rem;
-            border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-family: inherit;
+            background: #111; border: none; color: #fff; padding: 0.4rem 0.8rem;
+            border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-family: inherit; font-weight: 500;
         }
 
-        /* Layout */
-        .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+        /* ---- LAYOUT ---- */
+        .wrap { max-width: 1060px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
         .page { min-height: calc(100vh - 50px); }
 
-        /* Stats bar */
-        .stats-bar { background: #fff; border-bottom: 1px solid #e5e5e3; padding: 1rem 0; }
-        .stats-row { display: flex; gap: 2rem; }
-        .stat-item { font-size: 0.78rem; color: #999; }
-        .stat-item strong { color: #333; font-weight: 600; font-size: 1.1rem; display: block; }
+        /* ---- HERO ---- */
+        .hero {
+            padding: 4.5rem 0 3.5rem; text-align: center; position: relative; z-index: 1;
+        }
+        .hero h1 {
+            font-family: 'Newsreader', Georgia, serif; font-size: 2.8rem; font-weight: 600;
+            color: #111; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 0.75rem;
+        }
+        .hero p { font-size: 1rem; color: #888; max-width: 480px; margin: 0 auto 2rem; }
+        .hero-form { display: flex; gap: 0.5rem; justify-content: center; max-width: 380px; margin: 0 auto; }
+        .hero-form input {
+            background: rgba(255,255,255,0.7); backdrop-filter: blur(8px);
+            border: 1px solid rgba(0,0,0,0.08); color: #333; padding: 0.7rem 1.1rem;
+            border-radius: 10px; font-size: 1rem; flex: 1; outline: none; font-family: inherit;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .hero-form input::placeholder { color: #bbb; text-transform: none; letter-spacing: normal; }
+        .hero-form input:focus { border-color: rgba(0,0,0,0.15); background: rgba(255,255,255,0.9); }
+        .hero-form button {
+            background: #111; color: #fff; border: none; padding: 0.7rem 1.4rem;
+            border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit;
+            transition: background 0.2s;
+        }
+        .hero-form button:hover { background: #333; }
+        .hero-result { margin-top: 1rem; font-size: 0.85rem; color: #999; }
+        .hero-result a { color: #111; font-weight: 600; text-decoration: underline; cursor: pointer; }
 
-        /* Section header */
+        /* ---- STATS ---- */
+        .stats-row {
+            display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 2.5rem;
+        }
+        .stat-pill {
+            font-size: 0.72rem; color: #888; background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.04);
+            padding: 0.3rem 0.85rem; border-radius: 100px;
+        }
+        .stat-pill strong { color: #444; font-weight: 600; }
+
+        /* ---- SECTION ---- */
         .section-header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 1.5rem 0 1rem; border-bottom: 1px solid #e5e5e3; margin-bottom: 1rem;
+            padding: 1.25rem 0 0.75rem; margin-bottom: 0.75rem;
         }
-        .section-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: #999; font-weight: 600; }
-        .sort-controls { display: flex; gap: 0.5rem; }
+        .section-title { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em; color: #bbb; font-weight: 600; }
+        .sort-controls { display: flex; gap: 0.35rem; }
         .sort-btn {
-            font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 100px;
-            border: 1px solid #ddd; background: #fff; cursor: pointer; color: #888; font-family: inherit;
+            font-size: 0.7rem; padding: 0.22rem 0.55rem; border-radius: 100px;
+            border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.5); cursor: pointer;
+            color: #999; font-family: inherit; transition: all 0.15s;
         }
         .sort-btn.active { background: #111; color: #fff; border-color: #111; }
 
-        /* MLA Grid */
-        .mla-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.75rem; padding-bottom: 2rem; }
-        .mla-card {
-            background: #fff; border: 1px solid #e8e8e6; border-radius: 12px; padding: 1.25rem;
-            cursor: pointer; transition: box-shadow 0.2s, transform 0.2s;
+        /* ---- DISCLAIMER ---- */
+        .disclaimer {
+            background: rgba(255,255,255,0.45); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.4); border-radius: 12px;
+            padding: 0.85rem 1.1rem; margin-bottom: 0.75rem;
+            font-size: 0.75rem; color: #999; line-height: 1.55;
         }
-        .mla-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.04); transform: translateY(-1px); }
-        .mla-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; }
-        .mla-name { font-size: 1rem; font-weight: 600; color: #111; }
-        .mla-hon { font-size: 0.65rem; color: #999; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
-        .mla-stats { display: flex; gap: 1.25rem; margin-top: 0.6rem; }
-        .mla-stat { font-size: 0.72rem; color: #aaa; }
-        .mla-stat strong { color: #555; font-weight: 600; }
-        .mla-bar { margin-top: 0.6rem; height: 3px; background: #f0f0ee; border-radius: 2px; overflow: hidden; }
+        .disclaimer strong { color: #666; }
+
+        /* ---- MLA GRID ---- */
+        .mla-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 0.6rem; padding-bottom: 2rem; }
+        .mla-card {
+            background: rgba(255,255,255,0.5); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.4); border-radius: 14px; padding: 1.15rem;
+            cursor: pointer; transition: box-shadow 0.25s, transform 0.25s, background 0.25s;
+        }
+        .mla-card:hover { background: rgba(255,255,255,0.75); box-shadow: 0 8px 32px rgba(0,0,0,0.04); transform: translateY(-1px); }
+        .mla-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+        .mla-name { font-size: 0.95rem; font-weight: 600; color: #111; }
+        .mla-stats { display: flex; gap: 1rem; }
+        .mla-stat { font-size: 0.7rem; color: #bbb; }
+        .mla-stat strong { color: #666; font-weight: 600; }
+        .mla-bar { margin-top: 0.5rem; height: 3px; background: rgba(0,0,0,0.04); border-radius: 2px; overflow: hidden; }
         .mla-bar-fill { height: 100%; border-radius: 2px; }
 
-        /* Profile view */
-        .profile { padding: 1.5rem 0; }
-        .profile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-        .profile-name { font-size: 1.8rem; font-weight: 700; color: #111; letter-spacing: -0.03em; }
-        .profile-meta { font-size: 0.85rem; color: #888; margin-top: 0.25rem; }
-        .back-btn {
-            font-size: 0.82rem; color: #888; text-decoration: none; cursor: pointer;
-            border: 1px solid #ddd; padding: 0.35rem 0.8rem; border-radius: 6px; background: #fff;
-            font-family: inherit;
-        }
-        .back-btn:hover { color: #111; border-color: #bbb; }
-
-        .profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
-        .profile-stat {
-            background: #fff; border: 1px solid #e8e8e6; border-radius: 10px; padding: 1rem;
-        }
-        .profile-stat strong { font-size: 1.4rem; color: #111; display: block; letter-spacing: -0.02em; }
-        .profile-stat span { font-size: 0.72rem; color: #999; }
-
-        /* Section breakdown */
-        .section-breakdown { background: #fff; border: 1px solid #e8e8e6; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
-        .section-breakdown h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 0.75rem; font-weight: 600; }
-        .section-row { display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; font-size: 0.82rem; }
-        .section-row-name { color: #555; }
-        .section-row-count { color: #aaa; font-size: 0.75rem; }
-
-        /* Speech list */
-        .speech-list { }
-        .speech-item {
-            background: #fff; border: 1px solid #e8e8e6; border-radius: 10px;
-            padding: 1rem 1.25rem; margin-bottom: 0.5rem;
-        }
-        .speech-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.3rem; }
-        .speech-section { font-size: 0.7rem; color: #999; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-        .speech-date { font-size: 0.75rem; color: #aaa; }
-        .speech-speaker { font-size: 0.85rem; font-weight: 600; color: #111; margin-bottom: 0.2rem; cursor: pointer; }
-        .speech-speaker:hover { text-decoration: underline; }
-        .speech-text { font-size: 0.88rem; color: #555; line-height: 1.65; }
-        .speech-text.truncated { max-height: 4.5em; overflow: hidden; position: relative; }
-        .speech-text.truncated::after {
-            content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2em;
-            background: linear-gradient(transparent, #fff);
-        }
-        .speech-expand {
-            font-size: 0.75rem; color: #888; cursor: pointer; margin-top: 0.3rem;
-            border: none; background: none; font-family: inherit; padding: 0;
-        }
-        .speech-expand:hover { color: #111; }
-        .speech-meta { display: flex; gap: 1rem; margin-top: 0.4rem; }
-        .speech-meta span { font-size: 0.7rem; color: #bbb; }
-        .speech-hansard-link {
-            font-size: 0.7rem; color: #4A90D9; text-decoration: none; margin-top: 0.3rem; display: inline-block;
-        }
-        .speech-hansard-link:hover { text-decoration: underline; }
-
-        /* Search results */
-        .search-info { padding: 1rem 0; font-size: 0.85rem; color: #888; }
-        .search-info strong { color: #333; }
-        mark { background: #fef3c7; color: #333; padding: 0 2px; border-radius: 2px; }
-
-        /* Empty state */
-        .empty { text-align: center; padding: 4rem 2rem; color: #999; }
-        .empty h2 { font-size: 1.2rem; color: #666; margin-bottom: 0.5rem; }
-        .empty p { font-size: 0.9rem; }
-
-        /* Transcript view */
-        .transcript-header { padding: 1.5rem 0 1rem; }
-        .transcript-date { font-size: 1.4rem; font-weight: 700; color: #111; letter-spacing: -0.02em; }
-        .transcript-link { font-size: 0.78rem; color: #4A90D9; text-decoration: none; }
-        .transcript-link:hover { text-decoration: underline; }
-
-        /* Responsive */
-        @media (max-width: 640px) {
-            .mla-grid { grid-template-columns: 1fr; }
-            .profile-stats { grid-template-columns: repeat(2, 1fr); }
-            .nav-search input { width: 160px; }
-            .stats-row { flex-wrap: wrap; gap: 1rem; }
-        }
-
-        /* Postal lookup hero */
-        .lookup-hero {
-            background: #111; color: #fff; padding: 3rem 0 2.5rem; text-align: center;
-        }
-        .lookup-hero h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
-        .lookup-hero p { font-size: 0.88rem; color: #888; margin-bottom: 1.5rem; }
-        .lookup-form { display: flex; gap: 0.5rem; justify-content: center; max-width: 360px; margin: 0 auto; }
-        .lookup-form input {
-            background: #222; border: 1px solid #444; color: #fff; padding: 0.6rem 1rem;
-            border-radius: 8px; font-size: 0.95rem; flex: 1; outline: none; font-family: inherit;
-            text-transform: uppercase; letter-spacing: 0.05em;
-        }
-        .lookup-form input::placeholder { color: #555; text-transform: none; letter-spacing: normal; }
-        .lookup-form input:focus { border-color: #666; }
-        .lookup-form button {
-            background: #fff; color: #111; border: none; padding: 0.6rem 1.2rem;
-            border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit;
-        }
-        .lookup-result { margin-top: 1.25rem; font-size: 0.85rem; color: #aaa; }
-        .lookup-result a { color: #fff; text-decoration: underline; cursor: pointer; }
-
-        /* Grade badge */
+        /* ---- GRADE ---- */
         .grade { display: inline-flex; align-items: center; gap: 0.4rem; }
         .grade-letter {
-            font-size: 0.85rem; font-weight: 700; width: 28px; height: 28px;
+            font-size: 0.8rem; font-weight: 700; width: 26px; height: 26px;
             display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 6px; color: #fff;
+            border-radius: 7px; color: #fff;
         }
         .grade-A { background: #16803c; }
         .grade-B { background: #4A90D9; }
         .grade-C { background: #D97706; }
         .grade-D { background: #DC2626; }
         .grade-F { background: #7f1d1d; }
-        .grade-Q { background: #9ca3af; font-size: 0.7rem !important; }
-        .grade-label { font-size: 0.72rem; color: #999; }
+        .grade-Q { background: #9ca3af; font-size: 0.65rem !important; }
+        .grade-label { font-size: 0.7rem; color: #999; }
+        .grade-large .grade-letter { font-size: 1.8rem; width: 50px; height: 50px; border-radius: 12px; }
+        .grade-large .grade-label { font-size: 0.82rem; }
 
-        .grade-large .grade-letter {
-            font-size: 2rem; width: 56px; height: 56px; border-radius: 10px;
+        /* ---- PROFILE ---- */
+        .profile { padding: 1.25rem 0; }
+        .profile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; }
+        .profile-name { font-family: 'Newsreader', Georgia, serif; font-size: 2rem; font-weight: 600; color: #111; letter-spacing: -0.02em; }
+        .profile-meta { font-size: 0.82rem; color: #999; margin-top: 0.2rem; }
+        .back-btn {
+            font-size: 0.78rem; color: #999; text-decoration: none; cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.08); padding: 0.3rem 0.7rem; border-radius: 8px;
+            background: rgba(255,255,255,0.5); font-family: inherit; transition: all 0.15s;
         }
-        .grade-large .grade-label { font-size: 0.85rem; }
+        .back-btn:hover { color: #111; border-color: rgba(0,0,0,0.15); }
+        .profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 1.25rem; }
+        .profile-stat {
+            background: rgba(255,255,255,0.5); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.4); border-radius: 12px; padding: 0.9rem;
+        }
+        .profile-stat strong { font-size: 1.3rem; color: #111; display: block; letter-spacing: -0.02em; }
+        .profile-stat span { font-size: 0.68rem; color: #aaa; }
 
-        /* Loading */
-        .loading { text-align: center; padding: 3rem; color: #999; font-size: 0.85rem; }
+        /* ---- SECTION BREAKDOWN ---- */
+        .section-breakdown {
+            background: rgba(255,255,255,0.5); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.4); border-radius: 12px;
+            padding: 1.1rem; margin-bottom: 1rem;
+        }
+        .section-breakdown h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: #bbb; margin-bottom: 0.6rem; font-weight: 600; }
+        .section-row { display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0; font-size: 0.78rem; }
+        .section-row-name { color: #666; }
+        .section-row-count { color: #bbb; font-size: 0.72rem; }
+
+        /* ---- SPEECHES ---- */
+        .speech-item {
+            background: rgba(255,255,255,0.5); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.4); border-radius: 12px;
+            padding: 0.9rem 1.1rem; margin-bottom: 0.4rem;
+        }
+        .speech-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.2rem; }
+        .speech-section { font-size: 0.65rem; color: #bbb; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+        .speech-date { font-size: 0.7rem; color: #ccc; }
+        .speech-speaker { font-size: 0.82rem; font-weight: 600; color: #111; margin-bottom: 0.15rem; cursor: pointer; }
+        .speech-speaker:hover { text-decoration: underline; }
+        .speech-text { font-size: 0.85rem; color: #666; line-height: 1.6; }
+        .speech-text.truncated { max-height: 4.2em; overflow: hidden; position: relative; }
+        .speech-text.truncated::after {
+            content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2em;
+            background: linear-gradient(transparent, rgba(255,255,255,0.7));
+        }
+        .speech-expand {
+            font-size: 0.72rem; color: #999; cursor: pointer; margin-top: 0.2rem;
+            border: none; background: none; font-family: inherit; padding: 0;
+        }
+        .speech-expand:hover { color: #111; }
+        .speech-meta { display: flex; gap: 0.8rem; margin-top: 0.3rem; }
+        .speech-meta span { font-size: 0.65rem; color: #ccc; }
+        .speech-hansard-link { font-size: 0.65rem; color: #4A90D9; text-decoration: none; }
+        .speech-hansard-link:hover { text-decoration: underline; }
+
+        /* ---- SEARCH ---- */
+        .search-info { padding: 0.75rem 0; font-size: 0.82rem; color: #999; }
+        .search-info strong { color: #444; }
+
+        /* ---- EMPTY / LOADING ---- */
+        .empty { text-align: center; padding: 3rem 2rem; color: #aaa; }
+        .empty h2 { font-family: 'Newsreader', Georgia, serif; font-size: 1.2rem; color: #888; margin-bottom: 0.4rem; }
+        .loading { text-align: center; padding: 3rem; color: #aaa; font-size: 0.82rem; }
+
+        /* ---- FOOTER ---- */
+        .footer { text-align: center; padding: 1.5rem 0 2rem; position: relative; z-index: 1; }
+        .footer a { font-size: 0.7rem; color: #ccc; text-decoration: none; }
+        .footer a:hover { color: #888; }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 2rem; }
+            .hero-form { flex-direction: column; }
+            .mla-grid { grid-template-columns: 1fr; }
+            .profile-stats { grid-template-columns: repeat(2, 1fr); }
+            .profile-name { font-size: 1.5rem; }
+            .nav-search input { width: 140px; }
+            .stats-row { flex-wrap: wrap; justify-content: center; }
+        }
     </style>
 </head>
 <body>
+
+<!-- Geometric background matching personal site -->
+<div class="geo-bg">
+    <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#4A90D9" stop-opacity="0.12"/><stop offset="100%" stop-color="#4A90D9" stop-opacity="0"/></radialGradient>
+            <radialGradient id="g2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#E8854A" stop-opacity="0.1"/><stop offset="100%" stop-color="#E8854A" stop-opacity="0"/></radialGradient>
+            <radialGradient id="g3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#4AAE8C" stop-opacity="0.1"/><stop offset="100%" stop-color="#4AAE8C" stop-opacity="0"/></radialGradient>
+        </defs>
+        <ellipse cx="10%" cy="15%" rx="350" ry="280" fill="url(#g1)"/>
+        <ellipse cx="85%" cy="10%" rx="320" ry="250" fill="url(#g2)"/>
+        <ellipse cx="70%" cy="72%" rx="340" ry="270" fill="url(#g3)"/>
+        <ellipse cx="20%" cy="65%" rx="250" ry="200" fill="url(#g1)"/>
+        <g stroke-width="0.8" fill="none" opacity="0.18">
+            <line x1="5%" y1="8%" x2="15%" y2="20%" stroke="#4A90D9"/>
+            <line x1="15%" y1="20%" x2="8%" y2="30%" stroke="#4A90D9"/>
+            <line x1="15%" y1="20%" x2="25%" y2="14%" stroke="#4A90D9"/>
+            <line x1="25%" y1="14%" x2="32%" y2="26%" stroke="#4A90D9"/>
+            <line x1="78%" y1="4%" x2="88%" y2="14%" stroke="#E8854A"/>
+            <line x1="88%" y1="14%" x2="95%" y2="7%" stroke="#E8854A"/>
+            <line x1="88%" y1="14%" x2="82%" y2="24%" stroke="#E8854A"/>
+            <line x1="82%" y1="24%" x2="93%" y2="30%" stroke="#E8854A"/>
+            <line x1="58%" y1="68%" x2="68%" y2="76%" stroke="#4AAE8C"/>
+            <line x1="68%" y1="76%" x2="78%" y2="70%" stroke="#4AAE8C"/>
+            <line x1="58%" y1="68%" x2="52%" y2="80%" stroke="#4AAE8C"/>
+            <line x1="52%" y1="80%" x2="65%" y2="86%" stroke="#4AAE8C"/>
+            <polygon points="70,110 95,60 120,110" stroke="#4A90D9" opacity="0.5"/>
+            <polygon points="1200,65 1225,20 1250,65 1225,110" stroke="#E8854A" opacity="0.4"/>
+            <polygon points="820,580 845,565 870,580 870,608 845,623 820,608" stroke="#4AAE8C" opacity="0.4"/>
+        </g>
+        <g>
+            <circle cx="5%" cy="8%" r="4.5" fill="#4A90D9" opacity="0.3"/>
+            <circle cx="15%" cy="20%" r="6" fill="#4A90D9" opacity="0.2"/>
+            <circle cx="25%" cy="14%" r="3" fill="#4A90D9" opacity="0.25"/>
+            <circle cx="32%" cy="26%" r="5" fill="#4A90D9" opacity="0.15"/>
+            <circle cx="78%" cy="4%" r="3.5" fill="#E8854A" opacity="0.28"/>
+            <circle cx="88%" cy="14%" r="6" fill="#E8854A" opacity="0.2"/>
+            <circle cx="95%" cy="7%" r="3" fill="#E8854A" opacity="0.25"/>
+            <circle cx="82%" cy="24%" r="4" fill="#E8854A" opacity="0.18"/>
+            <circle cx="93%" cy="30%" r="5" fill="#E8854A" opacity="0.15"/>
+            <circle cx="58%" cy="68%" r="4" fill="#4AAE8C" opacity="0.25"/>
+            <circle cx="68%" cy="76%" r="6" fill="#4AAE8C" opacity="0.18"/>
+            <circle cx="78%" cy="70%" r="3.5" fill="#4AAE8C" opacity="0.22"/>
+            <circle cx="52%" cy="80%" r="3" fill="#4AAE8C" opacity="0.2"/>
+            <circle cx="65%" cy="86%" r="5" fill="#4AAE8C" opacity="0.15"/>
+        </g>
+    </svg>
+</div>
 
 <nav class="nav">
     <div class="wrap">
@@ -213,110 +292,85 @@
     <div class="loading">Loading...</div>
 </div>
 
+<div class="footer"><a href="https://johnmacgillis.ca" target="_blank">Built by John MacGillis</a></div>
+
 <script>
 const API = '';
 let allMembers = [];
 let currentView = 'directory';
 let maxWords = 0;
 
-// --- Fetch helpers ---
 async function api(path) {
     const res = await fetch(API + path);
     return res.json();
 }
 
-// --- Init ---
 async function init() {
-    const [stats, members] = await Promise.all([
-        api('/api/stats'),
-        api('/api/members')
-    ]);
+    const [stats, members] = await Promise.all([api('/api/stats'), api('/api/members')]);
     allMembers = members;
     maxWords = Math.max(...members.map(m => m.total_words));
     renderDirectory(stats, members);
 }
 
-// --- Directory View ---
 function renderDirectory(stats, members, sort = 'total_words') {
     currentView = 'directory';
     const app = document.getElementById('app');
 
-    const lookupHtml = `
-        <div class="lookup-hero">
-            <div class="wrap">
-                <h2>What does your MLA actually do?</h2>
-                <p>Enter your postal code to find your MLA and see their legislative record.</p>
-                <div class="lookup-form">
-                    <input type="text" id="postal-input" placeholder="B3H 4R2" maxlength="7" onkeydown="if(event.key==='Enter')doPostalLookup()">
-                    <button onclick="doPostalLookup()">Find my MLA</button>
-                </div>
-                <div class="lookup-result" id="lookup-result"></div>
-            </div>
-        </div>
-    `;
-
-    const statsHtml = `
-        <div class="stats-bar">
-            <div class="wrap">
-                <div class="stats-row">
-                    <div class="stat-item"><strong>${members.length}</strong>MLAs tracked</div>
-                    <div class="stat-item"><strong>${stats.sitting_days}</strong>sitting days</div>
-                    <div class="stat-item"><strong>${stats.speeches.toLocaleString()}</strong>speeches</div>
-                    <div class="stat-item"><strong>${stats.total_words.toLocaleString()}</strong>words spoken</div>
-                </div>
-            </div>
-        </div>
-    `;
-
     const sorts = [
-        ['total_words', 'Most words'],
-        ['speech_count', 'Most speeches'],
-        ['days_active', 'Most active'],
-        ['grade', 'By grade'],
-        ['name', 'A-Z']
+        ['total_words', 'Most words'], ['speech_count', 'Most speeches'],
+        ['days_active', 'Most active'], ['grade', 'By grade'], ['name', 'A-Z']
     ];
-
-    const sortHtml = sorts.map(([key, label]) =>
-        `<button class="sort-btn ${sort === key ? 'active' : ''}" onclick="sortMembers('${key}')">${label}</button>`
+    const sortHtml = sorts.map(([k, l]) =>
+        `<button class="sort-btn ${sort===k?'active':''}" onclick="sortMembers('${k}')">${l}</button>`
     ).join('');
 
     const cardsHtml = members.map(m => {
         const pct = (m.total_words / maxWords * 100).toFixed(1);
         const g = m.grade || {};
         const letter = g.letter || '?';
-        const color = m.is_honourable ? '#4A90D9' : '#4AAE8C';
         return `
             <div class="mla-card" onclick="showProfile('${m.slug}')">
                 <div class="mla-card-header">
                     <div class="mla-name">${m.is_honourable ? 'Hon. ' : ''}${m.name}</div>
-                    <div class="grade">
-                        <span class="grade-letter grade-${letter}">${letter}</span>
-                    </div>
+                    <div class="grade"><span class="grade-letter grade-${letter}">${letter}</span></div>
                 </div>
                 <div class="mla-stats">
                     <div class="mla-stat"><strong>${m.speech_count}</strong> speeches</div>
                     <div class="mla-stat"><strong>${m.total_words.toLocaleString()}</strong> words</div>
-                    <div class="mla-stat"><strong>${m.participation_rate || 0}%</strong> days speaking</div>
+                    <div class="mla-stat"><strong>${m.participation_rate||0}%</strong> days speaking</div>
                 </div>
-                <div class="mla-bar"><div class="mla-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-            </div>
-        `;
+                <div class="mla-bar"><div class="mla-bar-fill" style="width:${pct}%;background:${m.is_honourable?'#4A90D9':'#4AAE8C'}"></div></div>
+            </div>`;
     }).join('');
 
     app.innerHTML = `
-        ${lookupHtml}
-        ${statsHtml}
+        <div class="hero">
+            <div class="wrap">
+                <h1>What does your MLA<br>actually do?</h1>
+                <p>Search 1.7 million words of debate from the Nova Scotia Legislature. Find your MLA by postal code.</p>
+                <div class="hero-form">
+                    <input type="text" id="postal-input" placeholder="Enter postal code" maxlength="7" onkeydown="if(event.key==='Enter')doPostalLookup()">
+                    <button onclick="doPostalLookup()">Find my MLA</button>
+                </div>
+                <div class="hero-result" id="lookup-result"></div>
+            </div>
+        </div>
         <div class="wrap">
-            <div style="background:#fff;border:1px solid #e8e8e6;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem;font-size:0.78rem;color:#888;line-height:1.6;">
-                <strong style="color:#555;">About these grades:</strong> Grades measure <em>speaking participation</em> in the legislature — not attendance, and not job performance. Hansard only records who speaks, not who is present. Government backbenchers typically have fewer opportunities to speak than opposition members or ministers. A low grade means someone isn't on the record much, not that they aren't working.
+            <div class="stats-row">
+                <span class="stat-pill"><strong>${members.length}</strong> MLAs</span>
+                <span class="stat-pill"><strong>${stats.sitting_days}</strong> sitting days</span>
+                <span class="stat-pill"><strong>${stats.speeches.toLocaleString()}</strong> speeches</span>
+                <span class="stat-pill"><strong>${(stats.total_words/1000000).toFixed(1)}M</strong> words</span>
+            </div>
+            <div class="disclaimer">
+                <strong>About these grades:</strong> Grades measure <em>speaking participation</em> — not attendance or job performance. Hansard records who speaks, not who is present. Government backbenchers have fewer opportunities to speak than opposition members or ministers.
             </div>
             <div class="section-header">
                 <div class="section-title">All MLAs — 65th Assembly</div>
                 <div class="sort-controls">${sortHtml}</div>
             </div>
             <div class="mla-grid">${cardsHtml}</div>
-        </div>
-    `;
+        </div>`;
 }
 
 async function sortMembers(sort) {
@@ -326,94 +380,71 @@ async function sortMembers(sort) {
     renderDirectory(stats, members, sort);
 }
 
-// --- Profile View ---
 async function showProfile(slug) {
     currentView = 'profile';
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading">Loading profile...</div>';
-
     const data = await api('/api/members/' + slug);
     const m = data.member;
-    const g = m.grade || {letter: '?', label: 'Unknown', score: 0};
-    const speeches = data.speeches;
+    const g = m.grade || {letter:'?',label:'Unknown',score:0};
 
     const topSections = data.sections.filter(s => s.section).slice(0, 8);
     const sectionsHtml = topSections.map(s =>
-        `<div class="section-row">
-            <span class="section-row-name">${s.section}</span>
-            <span class="section-row-count">${s.count} speeches &middot; ${s.words.toLocaleString()} words</span>
-        </div>`
+        `<div class="section-row"><span class="section-row-name">${s.section}</span><span class="section-row-count">${s.count} &middot; ${s.words.toLocaleString()} words</span></div>`
     ).join('');
-
-    const speechesHtml = speeches.map(s => renderSpeechItem(s, false)).join('');
+    const speechesHtml = data.speeches.map(s => renderSpeechItem(s, false)).join('');
 
     app.innerHTML = `
         <div class="wrap profile">
             <div class="profile-header">
                 <div>
-                    <div class="profile-name">${m.is_honourable ? 'Hon. ' : ''}${m.name}</div>
-                    <div class="profile-meta">${m.constituency || ''} ${m.party ? '&middot; ' + m.party : ''}</div>
+                    <div class="profile-name">${m.is_honourable?'Hon. ':''}${m.name}</div>
+                    <div class="profile-meta">${m.constituency||''} ${m.party?'&middot; '+m.party:''}</div>
                 </div>
                 <button class="back-btn" onclick="showDirectory()">&larr; All MLAs</button>
             </div>
-
-            <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
+            <div style="display:flex;align-items:center;gap:1.25rem;margin-bottom:1.25rem;">
                 <div class="grade grade-large">
                     <span class="grade-letter grade-${g.letter}">${g.letter}</span>
-                    <span class="grade-label">${g.label}<br><span style="color:#bbb;font-size:0.72rem;">Score: ${g.score}/100</span></span>
+                    <span class="grade-label">${g.label}<br><span style="color:#ccc;font-size:0.68rem;">Score: ${g.score}/100</span></span>
                 </div>
             </div>
-
             <div class="profile-stats">
                 <div class="profile-stat"><strong>${m.speech_count}</strong><span>Speeches</span></div>
                 <div class="profile-stat"><strong>${m.total_words.toLocaleString()}</strong><span>Words spoken</span></div>
                 <div class="profile-stat"><strong>${m.days_active} / 55</strong><span>Days speaking</span></div>
                 <div class="profile-stat"><strong>${Math.round(m.avg_words_per_speech)}</strong><span>Avg words / speech</span></div>
             </div>
-
-            ${data.topics && data.topics.length ? `<div class="section-breakdown"><h3>What they talk about</h3>${data.topics.slice(0, 8).map(t =>
-                `<div class="section-row">
-                    <span class="section-row-name">${t.topic}</span>
-                    <span class="section-row-count">${t.count} speeches &middot; ${t.words.toLocaleString()} words</span>
-                </div>`
-            ).join('')}</div>` : ''}
-            ${sectionsHtml ? `<div class="section-breakdown"><h3>Where they speak</h3>${sectionsHtml}</div>` : ''}
-
-            <div class="section-header">
-                <div class="section-title">Speeches (${data.total_speeches})</div>
-            </div>
+            ${data.topics&&data.topics.length?`<div class="section-breakdown"><h3>What they talk about</h3>${data.topics.slice(0,8).map(t=>`<div class="section-row"><span class="section-row-name">${t.topic}</span><span class="section-row-count">${t.count} &middot; ${t.words.toLocaleString()} words</span></div>`).join('')}</div>`:''}
+            ${sectionsHtml?`<div class="section-breakdown"><h3>Where they speak</h3>${sectionsHtml}</div>`:''}
+            <div class="section-header"><div class="section-title">Speeches (${data.total_speeches})</div></div>
             <div class="speech-list">${speechesHtml}</div>
-            ${data.total_speeches > data.per_page ? '<div class="loading" style="padding:1rem;font-size:0.8rem;">Showing first 50 speeches</div>' : ''}
-        </div>
-    `;
+            ${data.total_speeches>data.per_page?'<div class="loading" style="padding:0.75rem;font-size:0.75rem;">Showing first 50</div>':''}
+        </div>`;
 }
 
 function renderSpeechItem(s, showSpeaker = true) {
     const text = s.text || '';
     const truncated = text.length > 400;
-    const displayText = truncated ? text.substring(0, 400) + '...' : text;
+    const displayText = truncated ? text.substring(0,400)+'...' : text;
     const id = 'speech-' + s.id;
-
     const speakerHtml = showSpeaker
-        ? `<div class="speech-speaker" onclick="event.stopPropagation();showProfile('${s.member_slug}')">${s.is_honourable ? 'Hon. ' : ''}${s.name}</div>`
-        : '';
-
+        ? `<div class="speech-speaker" onclick="event.stopPropagation();showProfile('${s.member_slug}')">${s.is_honourable?'Hon. ':''}${s.name}</div>` : '';
     return `
         <div class="speech-item">
             <div class="speech-header">
-                <span class="speech-section">${s.topic ? s.topic + ' &middot; ' : ''}${s.section || ''}</span>
-                <span class="speech-date">${s.date}${s.timestamp ? ' &middot; ' + s.timestamp : ''}${s.similarity ? ' &middot; ' + Math.round(s.similarity * 100) + '% match' : ''}</span>
+                <span class="speech-section">${s.topic?s.topic+' &middot; ':''}${s.section||''}</span>
+                <span class="speech-date">${s.date}${s.similarity?' &middot; '+Math.round(s.similarity*100)+'% match':''}</span>
             </div>
             ${speakerHtml}
-            ${s.summary ? `<div style="font-size:0.78rem;color:#999;margin-bottom:0.3rem;font-style:italic;">${s.summary}</div>` : ''}
-            <div class="speech-text ${truncated ? 'truncated' : ''}" id="${id}">${displayText}</div>
-            ${truncated ? `<button class="speech-expand" onclick="expandSpeech('${id}', this, ${JSON.stringify(text).replace(/'/g, "\\'")})">&darr; Show full speech (${s.word_count} words)</button>` : ''}
+            ${s.summary?`<div style="font-size:0.72rem;color:#aaa;margin-bottom:0.2rem;font-style:italic;">${s.summary}</div>`:''}
+            <div class="speech-text ${truncated?'truncated':''}" id="${id}">${displayText}</div>
+            ${truncated?`<button class="speech-expand" onclick="expandSpeech('${id}',this,${JSON.stringify(text).replace(/'/g,"\\'")})">&darr; Full speech (${s.word_count} words)</button>`:''}
             <div class="speech-meta">
                 <span>${s.word_count} words</span>
-                ${s.sitting_slug ? `<a class="speech-hansard-link" href="https://nslegislature.ca/legislative-business/hansard-debates/assembly-65-session-1/${s.sitting_slug}" target="_blank">View in Hansard &rarr;</a>` : ''}
+                ${s.sitting_slug?`<a class="speech-hansard-link" href="https://nslegislature.ca/legislative-business/hansard-debates/assembly-65-session-1/${s.sitting_slug}" target="_blank">View in Hansard &rarr;</a>`:''}
             </div>
-        </div>
-    `;
+        </div>`;
 }
 
 function expandSpeech(id, btn, fullText) {
@@ -423,76 +454,45 @@ function expandSpeech(id, btn, fullText) {
     btn.remove();
 }
 
-// --- Search ---
 async function doSearch() {
     const q = document.getElementById('search-input').value.trim();
     if (!q) return;
-
     currentView = 'search';
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading">Searching...</div>';
-
     const data = await api('/api/search?q=' + encodeURIComponent(q));
-
-    if (data.results.length === 0) {
-        app.innerHTML = `
-            <div class="wrap">
-                <div class="empty">
-                    <h2>No results for "${q}"</h2>
-                    <p>Try different keywords or a broader search.</p>
-                </div>
-            </div>
-        `;
+    if (!data.results.length) {
+        app.innerHTML = `<div class="wrap"><div class="empty"><h2>No results for "${q}"</h2><p>Try different keywords.</p></div></div>`;
         return;
     }
-
-    const resultsHtml = data.results.map(s => renderSpeechItem(s, true)).join('');
-
-    app.innerHTML = `
-        <div class="wrap">
-            <div class="search-info">
-                <strong>${data.count}</strong> results for "<strong>${data.query}</strong>"
-                <button class="back-btn" style="margin-left:1rem;" onclick="showDirectory()">&larr; Back</button>
-            </div>
-            <div class="speech-list">${resultsHtml}</div>
-        </div>
-    `;
+    app.innerHTML = `<div class="wrap">
+        <div class="search-info"><strong>${data.count}</strong> results for "<strong>${data.query}</strong>"${data.mode==='semantic'?' (semantic)':''} <button class="back-btn" style="margin-left:0.75rem;" onclick="showDirectory()">&larr; Back</button></div>
+        <div class="speech-list">${data.results.map(s => renderSpeechItem(s,true)).join('')}</div></div>`;
 }
 
-// --- Postal Code Lookup ---
 async function doPostalLookup() {
     const input = document.getElementById('postal-input');
     const result = document.getElementById('lookup-result');
     const pc = input.value.trim();
     if (!pc) return;
-
     result.innerHTML = 'Looking up...';
-
     try {
         const data = await api('/api/lookup?pc=' + encodeURIComponent(pc));
-        if (data.error) {
-            result.innerHTML = data.error;
-            return;
-        }
+        if (data.error) { result.innerHTML = data.error; return; }
         if (data.member) {
-            result.innerHTML = `Your MLA: <a onclick="showProfile('${data.member.slug}')">${data.member.is_honourable ? 'Hon. ' : ''}${data.member.name}</a> — ${data.constituency}`;
+            result.innerHTML = `Your MLA: <a onclick="showProfile('${data.member.slug}')">${data.member.is_honourable?'Hon. ':''}${data.member.name}</a> — ${data.constituency}`;
         } else {
             result.innerHTML = `Constituency: ${data.constituency} (MLA not found in our records)`;
         }
-    } catch (e) {
-        result.innerHTML = 'Lookup failed. Try again.';
-    }
+    } catch(e) { result.innerHTML = 'Lookup failed. Try again.'; }
 }
 
-// --- Navigation ---
 async function showDirectory() {
     const stats = await api('/api/stats');
     renderDirectory(stats, allMembers.length ? allMembers : await api('/api/members'));
 }
 
-// --- Start ---
 init();
 </script>
-
 </body>
 </html>

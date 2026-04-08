@@ -347,13 +347,16 @@ class HansardHandler(SimpleHTTPRequestHandler):
         member["grade"] = grade_mla(member, total_days, maxes["mw"] or 1, maxes["ms"] or 1)
         member["participation_rate"] = round(member["days_active"] / total_days * 100) if total_days else 0
 
-        # Topic breakdown
-        c.execute("""
-            SELECT topic, COUNT(*) as count, SUM(word_count) as words
-            FROM speeches WHERE member_id = ? AND topic IS NOT NULL AND topic != 'Procedural'
-            GROUP BY topic ORDER BY words DESC
-        """, (member["id"],))
-        topics = dict_rows(c)
+        # Topic breakdown (if classification has been run)
+        try:
+            c.execute("""
+                SELECT topic, COUNT(*) as count, SUM(word_count) as words
+                FROM speeches WHERE member_id = ? AND topic IS NOT NULL AND topic != 'Procedural'
+                GROUP BY topic ORDER BY words DESC
+            """, (member["id"],))
+            topics = dict_rows(c)
+        except:
+            topics = []
 
         # Section breakdown
         c.execute("""
@@ -369,7 +372,7 @@ class HansardHandler(SimpleHTTPRequestHandler):
         offset = page * per_page
 
         c.execute("""
-            SELECT s.id, s.section, s.timestamp, s.text, s.word_count, s.topic, s.summary,
+            SELECT s.id, s.section, s.timestamp, s.text, s.word_count,
                    sd.date, sd.slug as sitting_slug
             FROM speeches s
             JOIN sitting_days sd ON s.sitting_id = sd.id
@@ -417,7 +420,6 @@ class HansardHandler(SimpleHTTPRequestHandler):
                     placeholders = ",".join("?" * len(ids))
                     c.execute(f"""
                         SELECT s.id, s.section, s.timestamp, s.text, s.word_count,
-                               s.topic, s.summary,
                                m.name, m.slug as member_slug, m.is_honourable,
                                sd.date, sd.slug as sitting_slug
                         FROM speeches s

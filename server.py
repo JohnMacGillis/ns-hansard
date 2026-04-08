@@ -70,8 +70,7 @@ def grade_mla(member, total_days, max_words, max_speeches):
     engagement = (member["speech_count"] / max_speeches) ** 0.7 if max_speeches else 0
 
     # Composite score (0-100) — harder curve
-    score = (participation * 25) + (volume * 25) + (substance * 25) + (engagement * 25)
-    score = round(score * 100)
+    score = round((participation * 25) + (volume * 25) + (substance * 25) + (engagement * 25))
 
     # Strict grading — only genuinely active MLAs get an A
     if score >= 75:

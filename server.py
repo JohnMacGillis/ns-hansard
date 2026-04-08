@@ -8,6 +8,7 @@ import os
 import json
 import struct
 import re
+import urllib.request
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -44,6 +45,53 @@ def get_db():
 
 def dict_rows(cursor):
     return [dict(row) for row in cursor.fetchall()]
+
+
+def grade_mla(member, total_days, max_words, max_speeches):
+    """
+    Grade an MLA based on their legislative record.
+    Factors: participation rate, volume, substance (avg speech length),
+    and breadth (days active relative to total).
+    """
+    # Participation: what % of sitting days did they show up?
+    participation = member["days_active"] / total_days if total_days else 0
+
+    # Volume: words spoken relative to the most active MLA
+    volume = member["total_words"] / max_words if max_words else 0
+
+    # Substance: average words per speech (longer = more substantive, up to a point)
+    avg = member["avg_words_per_speech"] or 0
+    # 200+ words per speech is solid, <50 is mostly interjections
+    substance = min(avg / 250, 1.0)
+
+    # Composite score (0-100)
+    score = (participation * 35) + (volume * 30) + (substance * 35)
+    score = round(score * 100)
+
+    if score >= 70:
+        letter = "A"
+        label = "Active contributor"
+    elif score >= 50:
+        letter = "B"
+        label = "Regular participant"
+    elif score >= 35:
+        letter = "C"
+        label = "Below average"
+    elif score >= 20:
+        letter = "D"
+        label = "Minimal contribution"
+    else:
+        letter = "F"
+        label = "Not showing up"
+
+    return {
+        "letter": letter,
+        "score": score,
+        "label": label,
+        "participation_pct": round(participation * 100),
+        "volume_pct": round(volume * 100),
+        "substance_pct": round(substance * 100)
+    }
 
 
 def load_embeddings():
@@ -123,7 +171,9 @@ class HansardHandler(SimpleHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         # API routes
-        if path == "/api/members":
+        if path == "/api/lookup":
+            return self.handle_postal_lookup(params)
+        elif path == "/api/members":
             return self.handle_members(params)
         elif path.startswith("/api/members/"):
             slug = path.split("/api/members/")[1].strip("/")
@@ -162,6 +212,55 @@ class HansardHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def handle_postal_lookup(self, params):
+        """Look up MLA by postal code using Represent API."""
+        pc = params.get("pc", [""])[0].strip().replace(" ", "").upper()
+        if not pc or len(pc) < 3:
+            return self.send_json({"error": "Enter a valid postal code"}, 400)
+
+        try:
+            url = f"https://represent.opennorth.ca/postcodes/{pc}/?sets=nova-scotia-electoral-districts-2019"
+            req = urllib.request.Request(url, headers={"User-Agent": "NSHansard/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+
+            boundaries = data.get("boundaries_centroid", []) or data.get("boundaries_concordance", [])
+            if not boundaries:
+                return self.send_json({"error": "No constituency found for this postal code"}, 404)
+
+            district_name = boundaries[0].get("name", "")
+
+            # Try to match to our members
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("SELECT * FROM member_stats WHERE constituency LIKE ?", (f"%{district_name}%",))
+            member = c.fetchone()
+
+            # If no match by constituency, try to find by representatives data
+            if not member:
+                # Get reps from the API too
+                reps = data.get("representatives_centroid", [])
+                for rep in reps:
+                    if "nova-scotia" in rep.get("elected_office", "").lower() or "MLA" in rep.get("elected_office", ""):
+                        rep_name = rep.get("name", "")
+                        # Try matching by name
+                        c.execute("SELECT * FROM member_stats WHERE name LIKE ?", (f"%{rep_name.split()[-1]}%",))
+                        member = c.fetchone()
+                        if member:
+                            break
+
+            conn.close()
+
+            result = {
+                "postal_code": pc,
+                "constituency": district_name,
+                "member": dict(member) if member else None
+            }
+            self.send_json(result)
+
+        except Exception as e:
+            self.send_json({"error": f"Lookup failed: {str(e)}"}, 500)
+
     def handle_stats(self):
         conn = get_db()
         c = conn.cursor()
@@ -185,18 +284,36 @@ class HansardHandler(SimpleHTTPRequestHandler):
         conn = get_db()
         c = conn.cursor()
         sort = params.get("sort", ["total_words"])[0]
-        valid_sorts = {"total_words", "speech_count", "days_active", "name", "avg_words_per_speech"}
+        valid_sorts = {"total_words", "speech_count", "days_active", "name", "avg_words_per_speech", "grade"}
         if sort not in valid_sorts:
             sort = "total_words"
-        order = "ASC" if sort == "name" else "DESC"
 
-        c.execute(f"""
-            SELECT * FROM member_stats
-            WHERE slug != 'speaker'
-            ORDER BY {sort} {order}
-        """)
+        c.execute("SELECT * FROM member_stats WHERE slug != 'speaker'")
         members = dict_rows(c)
+
+        # Get total sitting days for participation rate
+        c.execute("SELECT COUNT(*) as n FROM sitting_days")
+        total_days = c.fetchone()["n"]
+
         conn.close()
+
+        # Grade each member
+        if members:
+            max_words = max(m["total_words"] for m in members)
+            max_speeches = max(m["speech_count"] for m in members)
+
+            for m in members:
+                m["grade"] = grade_mla(m, total_days, max_words, max_speeches)
+                m["participation_rate"] = round(m["days_active"] / total_days * 100) if total_days else 0
+
+        if sort == "grade":
+            grade_order = {"A": 0, "B": 1, "C": 2, "D": 3, "F": 4}
+            members.sort(key=lambda m: (grade_order.get(m["grade"]["letter"], 5), -m["total_words"]))
+        else:
+            order = "ASC" if sort == "name" else "DESC"
+            reverse = sort != "name"
+            members.sort(key=lambda m: m.get(sort, 0) if sort != "name" else m.get("name", ""), reverse=reverse)
+
         self.send_json(members)
 
     def handle_member_profile(self, slug, params):
@@ -210,6 +327,14 @@ class HansardHandler(SimpleHTTPRequestHandler):
             conn.close()
             return self.send_json({"error": "Member not found"}, 404)
         member = dict(member)
+
+        # Compute grade
+        c.execute("SELECT COUNT(*) as n FROM sitting_days")
+        total_days = c.fetchone()["n"]
+        c.execute("SELECT MAX(total_words) as mw, MAX(speech_count) as ms FROM member_stats WHERE slug != 'speaker'")
+        maxes = c.fetchone()
+        member["grade"] = grade_mla(member, total_days, maxes["mw"] or 1, maxes["ms"] or 1)
+        member["participation_rate"] = round(member["days_active"] / total_days * 100) if total_days else 0
 
         # Topic breakdown
         c.execute("""

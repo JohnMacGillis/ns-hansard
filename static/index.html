@@ -150,6 +150,46 @@
             .stats-row { flex-wrap: wrap; gap: 1rem; }
         }
 
+        /* Postal lookup hero */
+        .lookup-hero {
+            background: #111; color: #fff; padding: 3rem 0 2.5rem; text-align: center;
+        }
+        .lookup-hero h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
+        .lookup-hero p { font-size: 0.88rem; color: #888; margin-bottom: 1.5rem; }
+        .lookup-form { display: flex; gap: 0.5rem; justify-content: center; max-width: 360px; margin: 0 auto; }
+        .lookup-form input {
+            background: #222; border: 1px solid #444; color: #fff; padding: 0.6rem 1rem;
+            border-radius: 8px; font-size: 0.95rem; flex: 1; outline: none; font-family: inherit;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .lookup-form input::placeholder { color: #555; text-transform: none; letter-spacing: normal; }
+        .lookup-form input:focus { border-color: #666; }
+        .lookup-form button {
+            background: #fff; color: #111; border: none; padding: 0.6rem 1.2rem;
+            border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .lookup-result { margin-top: 1.25rem; font-size: 0.85rem; color: #aaa; }
+        .lookup-result a { color: #fff; text-decoration: underline; cursor: pointer; }
+
+        /* Grade badge */
+        .grade { display: inline-flex; align-items: center; gap: 0.4rem; }
+        .grade-letter {
+            font-size: 0.85rem; font-weight: 700; width: 28px; height: 28px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 6px; color: #fff;
+        }
+        .grade-A { background: #16803c; }
+        .grade-B { background: #4A90D9; }
+        .grade-C { background: #D97706; }
+        .grade-D { background: #DC2626; }
+        .grade-F { background: #7f1d1d; }
+        .grade-label { font-size: 0.72rem; color: #999; }
+
+        .grade-large .grade-letter {
+            font-size: 2rem; width: 56px; height: 56px; border-radius: 10px;
+        }
+        .grade-large .grade-label { font-size: 0.85rem; }
+
         /* Loading */
         .loading { text-align: center; padding: 3rem; color: #999; font-size: 0.85rem; }
     </style>
@@ -200,6 +240,20 @@ function renderDirectory(stats, members, sort = 'total_words') {
     currentView = 'directory';
     const app = document.getElementById('app');
 
+    const lookupHtml = `
+        <div class="lookup-hero">
+            <div class="wrap">
+                <h2>What does your MLA actually do?</h2>
+                <p>Enter your postal code to find your MLA and see their legislative record.</p>
+                <div class="lookup-form">
+                    <input type="text" id="postal-input" placeholder="B3H 4R2" maxlength="7" onkeydown="if(event.key==='Enter')doPostalLookup()">
+                    <button onclick="doPostalLookup()">Find my MLA</button>
+                </div>
+                <div class="lookup-result" id="lookup-result"></div>
+            </div>
+        </div>
+    `;
+
     const statsHtml = `
         <div class="stats-bar">
             <div class="wrap">
@@ -217,7 +271,7 @@ function renderDirectory(stats, members, sort = 'total_words') {
         ['total_words', 'Most words'],
         ['speech_count', 'Most speeches'],
         ['days_active', 'Most active'],
-        ['avg_words_per_speech', 'Longest speeches'],
+        ['grade', 'By grade'],
         ['name', 'A-Z']
     ];
 
@@ -227,17 +281,21 @@ function renderDirectory(stats, members, sort = 'total_words') {
 
     const cardsHtml = members.map(m => {
         const pct = (m.total_words / maxWords * 100).toFixed(1);
+        const g = m.grade || {};
+        const letter = g.letter || '?';
         const color = m.is_honourable ? '#4A90D9' : '#4AAE8C';
         return `
             <div class="mla-card" onclick="showProfile('${m.slug}')">
                 <div class="mla-card-header">
                     <div class="mla-name">${m.is_honourable ? 'Hon. ' : ''}${m.name}</div>
-                    ${m.is_honourable ? '<span class="mla-hon">Minister</span>' : ''}
+                    <div class="grade">
+                        <span class="grade-letter grade-${letter}">${letter}</span>
+                    </div>
                 </div>
                 <div class="mla-stats">
                     <div class="mla-stat"><strong>${m.speech_count}</strong> speeches</div>
                     <div class="mla-stat"><strong>${m.total_words.toLocaleString()}</strong> words</div>
-                    <div class="mla-stat"><strong>${m.days_active}</strong> days</div>
+                    <div class="mla-stat"><strong>${m.participation_rate || 0}%</strong> attendance</div>
                 </div>
                 <div class="mla-bar"><div class="mla-bar-fill" style="width:${pct}%;background:${color}"></div></div>
             </div>
@@ -245,10 +303,11 @@ function renderDirectory(stats, members, sort = 'total_words') {
     }).join('');
 
     app.innerHTML = `
+        ${lookupHtml}
         ${statsHtml}
         <div class="wrap">
             <div class="section-header">
-                <div class="section-title">Members of the Legislative Assembly</div>
+                <div class="section-title">All MLAs — 65th Assembly</div>
                 <div class="sort-controls">${sortHtml}</div>
             </div>
             <div class="mla-grid">${cardsHtml}</div>
@@ -271,6 +330,7 @@ async function showProfile(slug) {
 
     const data = await api('/api/members/' + slug);
     const m = data.member;
+    const g = m.grade || {letter: '?', label: 'Unknown', score: 0};
     const speeches = data.speeches;
 
     const topSections = data.sections.filter(s => s.section).slice(0, 8);
@@ -293,10 +353,17 @@ async function showProfile(slug) {
                 <button class="back-btn" onclick="showDirectory()">&larr; All MLAs</button>
             </div>
 
+            <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
+                <div class="grade grade-large">
+                    <span class="grade-letter grade-${g.letter}">${g.letter}</span>
+                    <span class="grade-label">${g.label}<br><span style="color:#bbb;font-size:0.72rem;">Score: ${g.score}/100</span></span>
+                </div>
+            </div>
+
             <div class="profile-stats">
                 <div class="profile-stat"><strong>${m.speech_count}</strong><span>Speeches</span></div>
                 <div class="profile-stat"><strong>${m.total_words.toLocaleString()}</strong><span>Words spoken</span></div>
-                <div class="profile-stat"><strong>${m.days_active}</strong><span>Days active</span></div>
+                <div class="profile-stat"><strong>${m.days_active} / ${data.total_speeches > 0 ? '55' : '?'}</strong><span>Days present</span></div>
                 <div class="profile-stat"><strong>${Math.round(m.avg_words_per_speech)}</strong><span>Avg words / speech</span></div>
             </div>
 
@@ -386,6 +453,31 @@ async function doSearch() {
             <div class="speech-list">${resultsHtml}</div>
         </div>
     `;
+}
+
+// --- Postal Code Lookup ---
+async function doPostalLookup() {
+    const input = document.getElementById('postal-input');
+    const result = document.getElementById('lookup-result');
+    const pc = input.value.trim();
+    if (!pc) return;
+
+    result.innerHTML = 'Looking up...';
+
+    try {
+        const data = await api('/api/lookup?pc=' + encodeURIComponent(pc));
+        if (data.error) {
+            result.innerHTML = data.error;
+            return;
+        }
+        if (data.member) {
+            result.innerHTML = `Your MLA: <a onclick="showProfile('${data.member.slug}')">${data.member.is_honourable ? 'Hon. ' : ''}${data.member.name}</a> — ${data.constituency}`;
+        } else {
+            result.innerHTML = `Constituency: ${data.constituency} (MLA not found in our records)`;
+        }
+    } catch (e) {
+        result.innerHTML = 'Lookup failed. Try again.';
+    }
 }
 
 // --- Navigation ---

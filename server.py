@@ -57,32 +57,38 @@ def grade_mla(member, total_days, max_words, max_speeches):
     participation = member["days_active"] / total_days if total_days else 0
 
     # Volume: words spoken relative to the most active MLA
-    volume = member["total_words"] / max_words if max_words else 0
+    # Use a steeper curve — only top performers get full marks
+    volume_raw = member["total_words"] / max_words if max_words else 0
+    volume = volume_raw ** 0.7  # diminishing returns
 
-    # Substance: average words per speech (longer = more substantive, up to a point)
+    # Substance: average words per speech (longer = more substantive)
     avg = member["avg_words_per_speech"] or 0
-    # 200+ words per speech is solid, <50 is mostly interjections
-    substance = min(avg / 250, 1.0)
+    # 300+ words per speech is genuinely substantive
+    substance = min(avg / 350, 1.0)
 
-    # Composite score (0-100)
-    score = (participation * 35) + (volume * 30) + (substance * 35)
+    # Speech count relative to max — are they actually speaking or just present?
+    engagement = (member["speech_count"] / max_speeches) ** 0.7 if max_speeches else 0
+
+    # Composite score (0-100) — harder curve
+    score = (participation * 25) + (volume * 25) + (substance * 25) + (engagement * 25)
     score = round(score * 100)
 
-    if score >= 70:
+    # Strict grading — only genuinely active MLAs get an A
+    if score >= 75:
         letter = "A"
-        label = "Active contributor"
-    elif score >= 50:
+        label = "Highly active"
+    elif score >= 55:
         letter = "B"
-        label = "Regular participant"
-    elif score >= 35:
+        label = "Solid contributor"
+    elif score >= 40:
         letter = "C"
-        label = "Below average"
-    elif score >= 20:
+        label = "Average"
+    elif score >= 25:
         letter = "D"
-        label = "Minimal contribution"
+        label = "Below average"
     else:
         letter = "F"
-        label = "Not showing up"
+        label = "Barely participating"
 
     return {
         "letter": letter,

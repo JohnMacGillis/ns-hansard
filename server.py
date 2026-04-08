@@ -27,7 +27,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 DB_PATH = os.path.join(DATA_DIR, "hansard.db")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 RAW_HTML_DIR = os.path.join(DATA_DIR, "raw_html")
-PORT = int(os.environ.get("PORT", 8091))
+PORT = int(os.environ.get("PORT", os.environ.get("Port", 8080)))
 
 # Global embedding matrix (loaded at startup if available)
 EMBEDDING_MATRIX = None

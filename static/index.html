@@ -413,8 +413,44 @@ async function showProfile(slug) {
                 <div class="profile-stat"><strong>${m.speech_count}</strong><span>Speeches</span></div>
                 <div class="profile-stat"><strong>${m.total_words.toLocaleString()}</strong><span>Words spoken</span></div>
                 <div class="profile-stat"><strong>${m.days_active} / 55</strong><span>Days speaking</span></div>
-                <div class="profile-stat"><strong>${Math.round(m.avg_words_per_speech)}</strong><span>Avg words / speech</span></div>
+                <div class="profile-stat"><strong>${data.avg_substance !== null ? data.avg_substance + '/10' : Math.round(m.avg_words_per_speech)}</strong><span>${data.avg_substance !== null ? 'Avg substance' : 'Avg words / speech'}</span></div>
             </div>
+            ${data.best_moments&&data.best_moments.length?`
+            <div class="section-breakdown" style="border-left:3px solid #16803c;">
+                <h3>Best moments</h3>
+                ${data.best_moments.map(m=>`
+                    <div style="padding:0.5rem 0;border-bottom:1px solid rgba(0,0,0,0.03);">
+                        <div style="font-size:0.72rem;color:#bbb;">${m.date} &middot; ${m.section||''}</div>
+                        <div style="font-family:'Newsreader',Georgia,serif;font-style:italic;font-size:0.88rem;color:#444;margin:0.25rem 0;line-height:1.5;">"${m.highlight_quote || m.text.substring(0,200)+'...'}"</div>
+                        <div style="font-size:0.65rem;color:#16803c;">Substance: ${m.substance_score}/10</div>
+                    </div>
+                `).join('')}
+            </div>`:''}
+
+            ${data.worst_moments&&data.worst_moments.length?`
+            <div class="section-breakdown" style="border-left:3px solid #DC2626;">
+                <h3>Worst moments</h3>
+                ${data.worst_moments.map(m=>`
+                    <div style="padding:0.5rem 0;border-bottom:1px solid rgba(0,0,0,0.03);">
+                        <div style="font-size:0.72rem;color:#bbb;">${m.date} &middot; ${m.section||''}</div>
+                        <div style="font-family:'Newsreader',Georgia,serif;font-style:italic;font-size:0.88rem;color:#666;margin:0.25rem 0;line-height:1.5;">"${m.highlight_quote || m.text.substring(0,200)+'...'}"</div>
+                        ${m.is_absurd?`<div style="font-size:0.65rem;color:#DC2626;">Flagged as absurd: ${m.absurd_reason||''}</div>`:`<div style="font-size:0.65rem;color:#DC2626;">Substance: ${m.substance_score}/10</div>`}
+                    </div>
+                `).join('')}
+            </div>`:''}
+
+            ${data.absurd_moments&&data.absurd_moments.length?`
+            <div class="section-breakdown" style="border-left:3px solid #D97706;">
+                <h3>Absurd moments (${data.absurd_moments.length})</h3>
+                ${data.absurd_moments.map(m=>`
+                    <div style="padding:0.5rem 0;border-bottom:1px solid rgba(0,0,0,0.03);">
+                        <div style="font-size:0.72rem;color:#bbb;">${m.date}</div>
+                        <div style="font-family:'Newsreader',Georgia,serif;font-style:italic;font-size:0.88rem;color:#666;margin:0.25rem 0;line-height:1.5;">"${m.highlight_quote || m.text.substring(0,200)+'...'}"</div>
+                        <div style="font-size:0.72rem;color:#D97706;">${m.absurd_reason||''}</div>
+                    </div>
+                `).join('')}
+            </div>`:''}
+
             ${data.topics&&data.topics.length?`<div class="section-breakdown"><h3>What they talk about</h3>${data.topics.slice(0,8).map(t=>`<div class="section-row"><span class="section-row-name">${t.topic}</span><span class="section-row-count">${t.count} &middot; ${t.words.toLocaleString()} words</span></div>`).join('')}</div>`:''}
             ${sectionsHtml?`<div class="section-breakdown"><h3>Where they speak</h3>${sectionsHtml}</div>`:''}
             <div class="section-header"><div class="section-title">Speeches (${data.total_speeches})</div></div>

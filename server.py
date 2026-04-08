@@ -366,6 +366,53 @@ class HansardHandler(SimpleHTTPRequestHandler):
         """, (member["id"],))
         sections = dict_rows(c)
 
+        # Best and worst moments
+        try:
+            c.execute("""
+                SELECT s.id, s.section, s.text, s.word_count, s.substance_score,
+                       s.highlight_type, s.highlight_quote, s.is_absurd, s.absurd_reason,
+                       sd.date, sd.slug as sitting_slug
+                FROM speeches s
+                JOIN sitting_days sd ON s.sitting_id = sd.id
+                WHERE s.member_id = ? AND s.highlight_type = 'best'
+                ORDER BY s.substance_score DESC LIMIT 3
+            """, (member["id"],))
+            best_moments = dict_rows(c)
+
+            c.execute("""
+                SELECT s.id, s.section, s.text, s.word_count, s.substance_score,
+                       s.highlight_type, s.highlight_quote, s.is_absurd, s.absurd_reason,
+                       sd.date, sd.slug as sitting_slug
+                FROM speeches s
+                JOIN sitting_days sd ON s.sitting_id = sd.id
+                WHERE s.member_id = ? AND (s.highlight_type = 'worst' OR s.is_absurd = 1)
+                ORDER BY s.substance_score ASC LIMIT 3
+            """, (member["id"],))
+            worst_moments = dict_rows(c)
+
+            c.execute("""
+                SELECT s.id, s.section, s.text, s.word_count, s.absurd_reason,
+                       s.highlight_quote, sd.date, sd.slug as sitting_slug
+                FROM speeches s
+                JOIN sitting_days sd ON s.sitting_id = sd.id
+                WHERE s.member_id = ? AND s.is_absurd = 1
+                ORDER BY sd.date DESC
+            """, (member["id"],))
+            absurd_moments = dict_rows(c)
+
+            c.execute("""
+                SELECT ROUND(AVG(s.substance_score), 1) as avg_substance
+                FROM speeches s
+                WHERE s.member_id = ? AND s.substance_score IS NOT NULL
+            """, (member["id"],))
+            avg_row = c.fetchone()
+            avg_substance = avg_row["avg_substance"] if avg_row else None
+        except:
+            best_moments = []
+            worst_moments = []
+            absurd_moments = []
+            avg_substance = None
+
         # Recent speeches (paginated)
         page = int(params.get("page", ["0"])[0])
         per_page = 50
@@ -391,6 +438,10 @@ class HansardHandler(SimpleHTTPRequestHandler):
             "member": member,
             "topics": topics,
             "sections": sections,
+            "best_moments": best_moments,
+            "worst_moments": worst_moments,
+            "absurd_moments": absurd_moments,
+            "avg_substance": avg_substance,
             "speeches": speeches,
             "total_speeches": total,
             "page": page,

@@ -72,6 +72,9 @@ def grade_mla(member, total_days, max_words, max_speeches):
     # Composite score (0-100) — harder curve
     score = round((participation * 25) + (volume * 25) + (substance * 25) + (engagement * 25))
 
+    # Is this a minister? (Hon. prefix = cabinet or speaker)
+    is_minister = member.get("is_honourable", 0)
+
     # Strict grading — only genuinely active MLAs get an A
     if score >= 75:
         letter = "A"
@@ -85,9 +88,12 @@ def grade_mla(member, total_days, max_words, max_speeches):
     elif score >= 25:
         letter = "D"
         label = "Below average"
-    else:
+    elif is_minister:
         letter = "F"
         label = "Barely participating"
+    else:
+        letter = "Q"
+        label = "Quiet as a mouse"
 
     return {
         "letter": letter,
@@ -312,7 +318,7 @@ class HansardHandler(SimpleHTTPRequestHandler):
                 m["participation_rate"] = round(m["days_active"] / total_days * 100) if total_days else 0
 
         if sort == "grade":
-            grade_order = {"A": 0, "B": 1, "C": 2, "D": 3, "F": 4}
+            grade_order = {"A": 0, "B": 1, "C": 2, "D": 3, "F": 4, "Q": 5}
             members.sort(key=lambda m: (grade_order.get(m["grade"]["letter"], 5), -m["total_words"]))
         else:
             order = "ASC" if sort == "name" else "DESC"

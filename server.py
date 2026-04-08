@@ -358,10 +358,24 @@ class HansardHandler(SimpleHTTPRequestHandler):
         except:
             topics = []
 
-        # Section breakdown
+        # Section breakdown — only major sections, not individual debate titles
         c.execute("""
             SELECT section, COUNT(*) as count, SUM(word_count) as words
-            FROM speeches WHERE member_id = ?
+            FROM speeches WHERE member_id = ? AND speech_type = 'speech'
+            AND section IN (
+                'ORAL QUESTIONS PUT BY MEMBERS TO MINISTERS',
+                'GOVERNMENT BUSINESS',
+                'OPPOSITION MEMBERS'' BUSINESS',
+                'GOVERNMENT MOTIONS',
+                'MOTIONS OTHER THAN GOVERNMENT MOTIONS',
+                'STATEMENTS BY MEMBERS',
+                'PRESENTING AND READING PETITIONS',
+                'PUBLIC BILLS FOR SECOND READING',
+                'PUBLIC BILLS FOR THIRD READING',
+                'PRIVATE MEMBERS'' PUBLIC BILLS FOR SECOND READING',
+                'BUDGET ADDRESS',
+                'COMMITTEE OF THE WHOLE ON BILLS'
+            )
             GROUP BY section ORDER BY words DESC
         """, (member["id"],))
         sections = dict_rows(c)
@@ -423,14 +437,14 @@ class HansardHandler(SimpleHTTPRequestHandler):
                    sd.date, sd.slug as sitting_slug
             FROM speeches s
             JOIN sitting_days sd ON s.sitting_id = sd.id
-            WHERE s.member_id = ?
+            WHERE s.member_id = ? AND s.speech_type = 'speech' AND s.word_count >= 10
             ORDER BY sd.date DESC, s.id ASC
             LIMIT ? OFFSET ?
         """, (member["id"], per_page, offset))
         speeches = dict_rows(c)
 
         # Total speech count for pagination
-        c.execute("SELECT COUNT(*) as n FROM speeches WHERE member_id = ?", (member["id"],))
+        c.execute("SELECT COUNT(*) as n FROM speeches WHERE member_id = ? AND speech_type = 'speech' AND word_count >= 10", (member["id"],))
         total = c.fetchone()["n"]
 
         conn.close()

@@ -459,23 +459,26 @@ async function showProfile(slug) {
         </div>`;
 }
 
+// Store full texts for expand
+const _fullTexts = {};
+
 function renderSpeechItem(s, showSpeaker = true) {
     const text = s.text || '';
     const truncated = text.length > 400;
     const displayText = truncated ? text.substring(0,400)+'...' : text;
     const id = 'speech-' + s.id;
+    if (truncated) _fullTexts[id] = text;
     const speakerHtml = showSpeaker
         ? `<div class="speech-speaker" onclick="event.stopPropagation();showProfile('${s.member_slug}')">${s.is_honourable?'Hon. ':''}${s.name}</div>` : '';
     return `
         <div class="speech-item">
             <div class="speech-header">
-                <span class="speech-section">${s.topic?s.topic+' &middot; ':''}${s.section||''}</span>
+                <span class="speech-section">${s.section||''}</span>
                 <span class="speech-date">${s.date}${s.similarity?' &middot; '+Math.round(s.similarity*100)+'% match':''}</span>
             </div>
             ${speakerHtml}
-            ${s.summary?`<div style="font-size:0.72rem;color:#aaa;margin-bottom:0.2rem;font-style:italic;">${s.summary}</div>`:''}
             <div class="speech-text ${truncated?'truncated':''}" id="${id}">${displayText}</div>
-            ${truncated?`<button class="speech-expand" onclick="expandSpeech('${id}',this,${JSON.stringify(text).replace(/'/g,"\\'")})">&darr; Full speech (${s.word_count} words)</button>`:''}
+            ${truncated?`<button class="speech-expand" onclick="expandSpeech('${id}',this)">&darr; Full speech (${s.word_count} words)</button>`:''}
             <div class="speech-meta">
                 <span>${s.word_count} words</span>
                 ${s.sitting_slug?`<a class="speech-hansard-link" href="https://nslegislature.ca/legislative-business/hansard-debates/assembly-65-session-1/${s.sitting_slug}" target="_blank">View in Hansard &rarr;</a>`:''}
@@ -483,10 +486,10 @@ function renderSpeechItem(s, showSpeaker = true) {
         </div>`;
 }
 
-function expandSpeech(id, btn, fullText) {
+function expandSpeech(id, btn) {
     const el = document.getElementById(id);
     el.classList.remove('truncated');
-    el.textContent = fullText;
+    el.textContent = _fullTexts[id] || el.textContent;
     btn.remove();
 }
 

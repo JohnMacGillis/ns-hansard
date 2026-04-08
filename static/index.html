@@ -295,7 +295,7 @@ function renderDirectory(stats, members, sort = 'total_words') {
                 <div class="mla-stats">
                     <div class="mla-stat"><strong>${m.speech_count}</strong> speeches</div>
                     <div class="mla-stat"><strong>${m.total_words.toLocaleString()}</strong> words</div>
-                    <div class="mla-stat"><strong>${m.participation_rate || 0}%</strong> attendance</div>
+                    <div class="mla-stat"><strong>${m.participation_rate || 0}%</strong> days speaking</div>
                 </div>
                 <div class="mla-bar"><div class="mla-bar-fill" style="width:${pct}%;background:${color}"></div></div>
             </div>
@@ -306,6 +306,9 @@ function renderDirectory(stats, members, sort = 'total_words') {
         ${lookupHtml}
         ${statsHtml}
         <div class="wrap">
+            <div style="background:#fff;border:1px solid #e8e8e6;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem;font-size:0.78rem;color:#888;line-height:1.6;">
+                <strong style="color:#555;">About these grades:</strong> Grades measure <em>speaking participation</em> in the legislature — not attendance, and not job performance. Hansard only records who speaks, not who is present. Government backbenchers typically have fewer opportunities to speak than opposition members or ministers. A low grade means someone isn't on the record much, not that they aren't working.
+            </div>
             <div class="section-header">
                 <div class="section-title">All MLAs — 65th Assembly</div>
                 <div class="sort-controls">${sortHtml}</div>
@@ -363,7 +366,7 @@ async function showProfile(slug) {
             <div class="profile-stats">
                 <div class="profile-stat"><strong>${m.speech_count}</strong><span>Speeches</span></div>
                 <div class="profile-stat"><strong>${m.total_words.toLocaleString()}</strong><span>Words spoken</span></div>
-                <div class="profile-stat"><strong>${m.days_active} / ${data.total_speeches > 0 ? '55' : '?'}</strong><span>Days present</span></div>
+                <div class="profile-stat"><strong>${m.days_active} / 55</strong><span>Days speaking</span></div>
                 <div class="profile-stat"><strong>${Math.round(m.avg_words_per_speech)}</strong><span>Avg words / speech</span></div>
             </div>
 

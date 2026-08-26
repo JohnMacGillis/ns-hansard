@@ -12,6 +12,29 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 DB_PATH = os.path.join(DATA_DIR, "hansard.db")
 
 
+def is_hon(name):
+    """Determine if honourable from name prefix."""
+    return 1 if name.startswith("HON.") or name.startswith("THE ") else 0
+
+
+def clean_name(name):
+    """Normalize display name."""
+    # Remove HON. prefix for storage, keep it as flag
+    n = name.strip()
+    n = re.sub(r'^HON\.\s*', '', n)
+    # Title case
+    parts = n.split()
+    titled = []
+    for p in parts:
+        if p in ("OF", "THE", "AND", "DE", "LA"):
+            titled.append(p.lower())
+        elif len(p) <= 3 and p == p.upper():
+            titled.append(p)  # Keep acronyms
+        else:
+            titled.append(p.capitalize())
+    return " ".join(titled)
+
+
 def build():
     print("Building Hansard database...")
 
@@ -81,27 +104,6 @@ def build():
 
     # --- Insert members + speeches ---
     member_map = {}  # slug -> id
-
-    # Determine if honourable from name prefix
-    def is_hon(name):
-        return 1 if name.startswith("HON.") or name.startswith("THE ") else 0
-
-    def clean_name(name):
-        """Normalize display name."""
-        # Remove HON. prefix for storage, keep it as flag
-        n = name.strip()
-        n = re.sub(r'^HON\.\s*', '', n)
-        # Title case
-        parts = n.split()
-        titled = []
-        for p in parts:
-            if p in ("OF", "THE", "AND", "DE", "LA"):
-                titled.append(p.lower())
-            elif len(p) <= 3 and p == p.upper():
-                titled.append(p)  # Keep acronyms
-            else:
-                titled.append(p.capitalize())
-        return " ".join(titled)
 
     speech_count = 0
 

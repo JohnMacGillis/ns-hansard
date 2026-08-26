@@ -1,7 +1,12 @@
 """
-Scraper for Nova Scotia Hansard transcripts (65th Assembly, Session 1).
+Scraper for Nova Scotia Hansard transcripts.
 Fetches listing pages to get all sitting dates, then fetches and parses
 each transcript into structured speaker segments.
+
+Defaults to the 65th Assembly, Session 1. Override with the NS_HANSARD_SESSION
+environment variable when the House opens a new session, e.g.
+
+    NS_HANSARD_SESSION=assembly-65-session-2 python3 update.py
 """
 
 import re
@@ -13,7 +18,8 @@ from html.parser import HTMLParser
 from datetime import datetime
 
 BASE_URL = "https://nslegislature.ca"
-SESSION_URL = f"{BASE_URL}/legislative-business/hansard-debates/assembly-65-session-1"
+SESSION = os.environ.get("NS_HANSARD_SESSION", "assembly-65-session-1")
+SESSION_URL = f"{BASE_URL}/legislative-business/hansard-debates/{SESSION}"
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 RAW_DIR = os.path.join(DATA_DIR, "raw_html")
 
@@ -91,19 +97,25 @@ class TextExtractor(HTMLParser):
         return "".join(self.result)
 
 
-def get_sitting_dates():
+def get_sitting_dates(session=None):
     """Fetch all sitting dates from the session listing pages."""
+    session = session or SESSION
+    session_url = f"{BASE_URL}/legislative-business/hansard-debates/{session}"
     dates = []
     page = 0
 
     while True:
-        url = f"{SESSION_URL}?page={page}" if page > 0 else SESSION_URL
+        url = f"{session_url}?page={page}" if page > 0 else session_url
         html = fetch_url(url)
         if not html:
             break
 
-        # Extract date links: /assembly-65-session-1/house_YYmmmDD
-        pattern = r'href="(/legislative-business/hansard-debates/assembly-65-session-1/house_[^"]+)"'
+        # Extract date links: /<session>/house_YYmmmDD
+        pattern = (
+            r'href="(/legislative-business/hansard-debates/'
+            + re.escape(session)
+            + r'/house_[^"]+)"'
+        )
         links = re.findall(pattern, html)
 
         if not links:

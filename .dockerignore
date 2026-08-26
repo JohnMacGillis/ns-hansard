@@ -1,0 +1,10 @@
+.git
+.gitignore
+data/hansard.db
+data/hansard.db.bak
+data/raw_html/
+data/*.json
+*.bak
+__pycache__/
+*.pyc
+deploy_hf.sh

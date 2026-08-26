@@ -19,6 +19,10 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 DB_PATH = os.path.join(DATA_DIR, "hansard.db")
 PROGRESS_FILE = os.path.join(DATA_DIR, "classify_progress.json")
 
+# Override to trade cost against quality on a bulk backfill, e.g.
+#   NS_HANSARD_MODEL=claude-haiku-4-5 python3 classify.py
+MODEL = os.environ.get("NS_HANSARD_MODEL", "claude-opus-5")
+
 TOPICS = [
     "Healthcare", "Education", "Housing", "Budget & Finance", "Justice & Public Safety",
     "Environment & Climate", "Economy & Jobs", "Infrastructure & Transportation",
@@ -74,11 +78,13 @@ def classify_batch(speeches):
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=MODEL,
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}]
         )
-        text = response.content[0].text
+        # Current models return thinking blocks before the text block,
+        # so select by type rather than by position.
+        text = next(b.text for b in response.content if b.type == "text")
 
         # Extract JSON from response
         # Find the JSON array

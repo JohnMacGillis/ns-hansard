@@ -1,0 +1,6 @@
+# Enrichment pipeline only — NOT installed in production.
+# requirements.txt is deliberately minimal so the web dyno stays small;
+# these are the extra deps for scraping and the classify/score/embed passes.
+anthropic>=0.40
+voyageai
+numpy

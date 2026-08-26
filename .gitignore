@@ -8,3 +8,6 @@ __pycache__/
 *.pyc
 .env
 serve.sh
+
+# local safety copies of the database
+*.bak
